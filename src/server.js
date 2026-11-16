@@ -1,3 +1,4 @@
+
 import dns from "node:dns/promises";
 
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
@@ -19,7 +20,6 @@ import {
   errorHandler,
 } from "./middleware/errorHandler.js";
 
-// Correct authentication middleware import
 import { protect } from "./middleware/auth.js";
 
 // Existing Routes
@@ -61,18 +61,79 @@ const PORT = Number(process.env.PORT || 5000);
 app.use(helmet());
 
 // ==========================================
-// CORS CONFIGURATION
+// CORS CONFIGURATION - LOCAL + RAILWAY
 // ==========================================
 
-app.use(
-  cors({
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:5173",
-      process.env.ADMIN_URL || "http://localhost:5174",
-    ],
-    credentials: true,
-  })
-);
+// Convert environment variables into URL lists.
+// Supports comma-separated values.
+const parseOrigins = (value) =>
+  (value || "")
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+
+const allowedOrigins = new Set([
+  // Local development
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+
+  // Railway employee/public frontend
+  "https://company-connect-frontend-production.up.railway.app",
+
+  // Railway admin panel
+  "https://company-connect-admin-production.up.railway.app",
+
+  // Additional configured frontend URLs
+  ...parseOrigins(process.env.CLIENT_URL),
+  ...parseOrigins(process.env.ADMIN_URL),
+]);
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow requests without an Origin header,
+    // such as server-to-server requests.
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const normalizedOrigin = origin.replace(/\/+$/, "");
+
+    if (allowedOrigins.has(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    console.warn(
+      `CORS rejected origin: ${normalizedOrigin}`
+    );
+
+    return callback(
+      new Error("Not allowed by CORS")
+    );
+  },
+
+  credentials: true,
+
+  methods: [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+  ],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+  ],
+
+  optionsSuccessStatus: 204,
+};
+
+// Apply CORS before API routes and authentication.
+app.use(cors(corsOptions));
 
 // ==========================================
 // REQUEST BODY MIDDLEWARE
@@ -196,13 +257,14 @@ async function startServer() {
     startDeadlineScheduler();
 
     // Start Express server
-    app.listen(PORT,"0.0.0.0", () => {
+    app.listen(PORT, () => {
       console.log(
-        `Backend running at http://localhost:${PORT}`
+        `Health check: /api/health`
       );
 
       console.log(
-        `Health check: http://localhost:${PORT}/api/health`
+        "Allowed CORS origins:",
+        [...allowedOrigins]
       );
 
       console.log(
