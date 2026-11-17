@@ -55,6 +55,17 @@ const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
 // ==========================================
+// RAILWAY PROXY CONFIGURATION
+// ==========================================
+
+// Railway runs Express behind a reverse proxy.
+// Trust one proxy hop for secure requests and
+// accurate client IP handling.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+// ==========================================
 // SECURITY MIDDLEWARE
 // ==========================================
 
@@ -64,12 +75,12 @@ app.use(helmet());
 // CORS CONFIGURATION - LOCAL + RAILWAY
 // ==========================================
 
-// Convert environment variables into URL lists.
-// Supports comma-separated values.
 const parseOrigins = (value) =>
   (value || "")
     .split(",")
-    .map((origin) => origin.trim().replace(/\/+$/, ""))
+    .map((origin) =>
+      origin.trim().replace(/\/+$/, "")
+    )
     .filter(Boolean);
 
 const allowedOrigins = new Set([
@@ -92,13 +103,12 @@ const allowedOrigins = new Set([
 
 const corsOptions = {
   origin(origin, callback) {
-    // Allow requests without an Origin header,
-    // such as server-to-server requests.
     if (!origin) {
       return callback(null, true);
     }
 
-    const normalizedOrigin = origin.replace(/\/+$/, "");
+    const normalizedOrigin =
+      origin.replace(/\/+$/, "");
 
     if (allowedOrigins.has(normalizedOrigin)) {
       return callback(null, true);
@@ -132,7 +142,6 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Apply CORS before API routes and authentication.
 app.use(cors(corsOptions));
 
 // ==========================================
@@ -250,20 +259,17 @@ app.use(errorHandler);
 
 async function startServer() {
   try {
-    // Connect MongoDB
     await connectDB();
 
-    // Start automatic deadline reminders
     startDeadlineScheduler();
 
-    // Start Express server
     app.listen(PORT, "0.0.0.0", () => {
       console.log(
         `Backend running on port ${PORT}`
       );
 
       console.log(
-        `Health check: /api/health`
+        "Health check: /api/health"
       );
 
       console.log(
