@@ -58,9 +58,6 @@ const PORT = Number(process.env.PORT || 5000);
 // RAILWAY PROXY CONFIGURATION
 // ==========================================
 
-// Railway runs Express behind a reverse proxy.
-// Trust one proxy hop for secure requests and
-// accurate client IP handling.
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
@@ -75,12 +72,13 @@ app.use(helmet());
 // CORS CONFIGURATION - LOCAL + RAILWAY
 // ==========================================
 
+const normalizeOrigin = (origin) =>
+  origin.trim().replace(/\/+$/, "");
+
 const parseOrigins = (value) =>
   (value || "")
     .split(",")
-    .map((origin) =>
-      origin.trim().replace(/\/+$/, "")
-    )
+    .map(normalizeOrigin)
     .filter(Boolean);
 
 const allowedOrigins = new Set([
@@ -107,8 +105,7 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    const normalizedOrigin =
-      origin.replace(/\/+$/, "");
+    const normalizedOrigin = normalizeOrigin(origin);
 
     if (allowedOrigins.has(normalizedOrigin)) {
       return callback(null, true);
@@ -263,16 +260,11 @@ async function startServer() {
 
     startDeadlineScheduler();
 
-<<<<<<< HEAD
-    // Start Express server
-    app.listen(PORT, () => {
-=======
     app.listen(PORT, "0.0.0.0", () => {
       console.log(
         `Backend running on port ${PORT}`
       );
 
->>>>>>> e7926c6 (Update backend server configuration)
       console.log(
         "Health check: /api/health"
       );
