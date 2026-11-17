@@ -352,29 +352,15 @@ export async function login(req, res) {
 
     // ADMIN AUTHENTICATION
     // Admin uses HttpOnly cookie.
-    if (user.role === "admin") {
-      res.cookie(
-        "company_portal_admin_session",
-        token,
-        {
-          httpOnly: true,
-          secure:
-            process.env.NODE_ENV ===
-            "production",
-          sameSite: "lax",
-          maxAge:
-            24 * 60 * 60 * 1000,
-          path: "/",
-        }
-      );
-
-      return res.status(200).json({
-        success: true,
-        message:
-          "Login successful.",
-        user: publicUser(user),
-      });
-    }
+    // ADMIN AUTHENTICATION
+if (user.role === "admin") {
+  return res.status(200).json({
+    success: true,
+    message: "Login successful.",
+    user: publicUser(user),
+    token,
+  });
+}
 
     // USER / EMPLOYEE AUTHENTICATION
     // Return Bearer token.
