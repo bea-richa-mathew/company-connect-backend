@@ -89,10 +89,10 @@ const allowedOrigins = new Set([
   "http://127.0.0.1:5174",
 
   // Railway employee/public frontend
-  "https://company-connect-frontend-production.up.railway.app",
+  "https://effervescent-pony-c3580b.netlify.app/login",
 
   // Railway admin panel
-  "https://company-connect-admin-production.up.railway.app",
+  "https://tourmaline-blancmange-e88548.netlify.app/login",
 
   // Additional configured frontend URLs
   ...parseOrigins(process.env.CLIENT_URL),
