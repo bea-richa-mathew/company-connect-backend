@@ -103,7 +103,7 @@ const allowedOrigins = new Set([
   // Additional configured frontend URLs
   ...parseOrigins(process.env.CLIENT_URL),
   ...parseOrigins(process.env.ADMIN_URL),
-]);
+].map(normalizeOrigin));
 
 const corsOptions = {
   origin(origin, callback) {
