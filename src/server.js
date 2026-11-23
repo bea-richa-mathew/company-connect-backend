@@ -92,7 +92,7 @@ const allowedOrigins = new Set([
   "https://company-connect-frontend.netlify.app/",
 
   // Netlify admin
-  "https://company-connect-admin.netlify.app/login",
+  "https://company-connect-admin.netlify.app/",
 
 
   // Railway frontend
