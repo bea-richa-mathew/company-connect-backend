@@ -92,11 +92,18 @@ if (process.env.NODE_ENV === "production") {
 
 // ==========================================
 // MORGAN HTTP REQUEST LOGGER
+// SAME SHORT FORMAT FOR LOCAL AND RENDER
 // ==========================================
 
-// Same short logging format in development and production
-
-app.use(morgan("dev"));
+app.use(
+  morgan("dev", {
+    stream: {
+      write: (message) => {
+        console.log(message.trim());
+      },
+    },
+  })
+);
 
 // ==========================================
 // SECURITY MIDDLEWARE
