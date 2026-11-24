@@ -1,20 +1,32 @@
 
-import dns from "node:dns/promises";
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+import dns from "node:dns/promises";
 
 import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 
-// Database
+// ==========================================
+// DNS CONFIGURATION
+// ==========================================
+
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+// ==========================================
+// DATABASE
+// ==========================================
+
 import { connectDB } from "./config/db.js";
 
-// Middleware
+// ==========================================
+// MIDDLEWARE
+// ==========================================
+
 import {
   notFound,
   errorHandler,
@@ -22,7 +34,10 @@ import {
 
 import { protect } from "./middleware/auth.js";
 
-// Existing Routes
+// ==========================================
+// EXISTING ROUTES
+// ==========================================
+
 import authRoutes from "./routes/authRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
@@ -37,29 +52,56 @@ import projectRoutes from "./routes/projectRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import activityRoutes from "./routes/activityRoutes.js";
 
-// Additional Feature Routes
+// ==========================================
+// ADDITIONAL FEATURE ROUTES
+// ==========================================
+
 import performanceRoutes from "./routes/performanceRoutes.js";
 import taskAttachmentRoutes from "./routes/taskAttachmentRoutes.js";
 import taskSubmissionRoutes from "./routes/taskSubmissionRoutes.js";
 
-// LiveKit Meeting Routes
+// ==========================================
+// LIVEKIT MEETING ROUTES
+// ==========================================
+
 import meetingRoutes from "./routes/meetingRoutes.js";
 
-// Deadline Reminder Scheduler
+// ==========================================
+// DEADLINE REMINDER SCHEDULER
+// ==========================================
+
 import {
   startDeadlineScheduler,
 } from "./services/deadlineScheduler.js";
+
+// ==========================================
+// EXPRESS APPLICATION
+// ==========================================
 
 const app = express();
 
 const PORT = Number(process.env.PORT || 5000);
 
 // ==========================================
-// RAILWAY PROXY CONFIGURATION
+// PROXY CONFIGURATION
+// RENDER / RAILWAY
 // ==========================================
 
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
+}
+
+// ==========================================
+// MORGAN HTTP REQUEST LOGGER
+// ==========================================
+
+// Development: Short and readable request logs
+// Production: Detailed request logs
+
+if (process.env.NODE_ENV === "production") {
+  app.use(morgan("combined"));
+} else {
+  app.use(morgan("dev"));
 }
 
 // ==========================================
@@ -69,44 +111,51 @@ if (process.env.NODE_ENV === "production") {
 app.use(helmet());
 
 // ==========================================
-// CORS CONFIGURATION - LOCAL + RAILWAY
+// CORS CONFIGURATION
+// LOCAL + NETLIFY + RAILWAY
 // ==========================================
 
+// Normalize URLs and remove trailing slashes
 const normalizeOrigin = (origin) =>
   origin.trim().replace(/\/+$/, "");
 
+// Parse comma-separated origins from environment
 const parseOrigins = (value) =>
   (value || "")
     .split(",")
-    .map(normalizeOrigin)
+    .map((origin) => normalizeOrigin(origin))
     .filter(Boolean);
 
+// Allowed frontend and admin URLs
 const allowedOrigins = new Set([
-  // Local development
+  // Local frontend
   "http://localhost:5173",
-  "http://localhost:5174",
   "http://127.0.0.1:5173",
+
+  // Local admin
+  "http://localhost:5174",
   "http://127.0.0.1:5174",
 
   // Netlify frontend
-  "https://company-connect-frontend.netlify.app/",
+  "https://company-connect-frontend.netlify.app",
 
   // Netlify admin
-  "https://company-connect-admin.netlify.app/",
+  "https://company-connect-admin.netlify.app",
 
+  // Environment variables
+  ...parseOrigins(process.env.CLIENT_URL),
+  ...parseOrigins(process.env.ADMIN_URL),
 
   // Railway frontend
   "https://company-connect-frontend-production.up.railway.app",
 
   // Railway admin
   "https://company-connect-admin-production.up.railway.app",
-  // Additional configured frontend URLs
-  ...parseOrigins(process.env.CLIENT_URL),
-  ...parseOrigins(process.env.ADMIN_URL),
 ].map(normalizeOrigin));
 
 const corsOptions = {
   origin(origin, callback) {
+    // Allow requests without Origin headers
     if (!origin) {
       return callback(null, true);
     }
@@ -145,6 +194,7 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
+// Enable CORS for all routes
 app.use(cors(corsOptions));
 
 // ==========================================
@@ -195,32 +245,72 @@ app.get("/api/health", (_req, res) => {
 });
 
 // ==========================================
-// EXISTING API ROUTES
+// AUTHENTICATION ROUTES
 // ==========================================
 
 app.use("/api/auth", authRoutes);
 
+// ==========================================
+// EMPLOYEE ROUTES
+// ==========================================
+
 app.use("/api/employees", employeeRoutes);
+
+// ==========================================
+// JOB AND APPLICATION ROUTES
+// ==========================================
 
 app.use("/api/jobs", jobRoutes);
 
 app.use("/api/applications", applicationRoutes);
 
+// ==========================================
+// LEAVE AND ATTENDANCE ROUTES
+// ==========================================
+
 app.use("/api/leaves", leaveRoutes);
 
 app.use("/api/attendance", attendanceRoutes);
 
+// ==========================================
+// TASK ROUTES
+// ==========================================
+
 app.use("/api/tasks", taskRoutes);
+
+// ==========================================
+// ANNOUNCEMENT ROUTES
+// ==========================================
 
 app.use("/api/announcements", announcementRoutes);
 
+// ==========================================
+// ADMIN ROUTES
+// ==========================================
+
 app.use("/api/admin", adminRoutes);
+
+// ==========================================
+// CONTACT ROUTES
+// ==========================================
 
 app.use("/api/contact", contactRoutes);
 
+// ==========================================
+// PROJECT ROUTES
+// ==========================================
+
 app.use("/api/projects", projectRoutes);
 
+// ==========================================
+// NOTIFICATION ROUTES
+// ==========================================
+
 app.use("/api/notifications", notificationRoutes);
+
+// ==========================================
+// ACTIVITY LOG ROUTES
+// ==========================================
 
 app.use("/api/activity-logs", activityRoutes);
 
@@ -231,10 +321,14 @@ app.use("/api/activity-logs", activityRoutes);
 app.use("/api/performance", performanceRoutes);
 
 // ==========================================
-// TASK ATTACHMENTS AND SUBMISSIONS
+// TASK ATTACHMENTS
 // ==========================================
 
 app.use("/api/tasks", taskAttachmentRoutes);
+
+// ==========================================
+// TASK SUBMISSIONS
+// ==========================================
 
 app.use("/api/tasks", taskSubmissionRoutes);
 
@@ -262,10 +356,13 @@ app.use(errorHandler);
 
 async function startServer() {
   try {
+    // Connect MongoDB
     await connectDB();
 
+    // Start deadline reminder scheduler
     startDeadlineScheduler();
 
+    // Start Express server
     app.listen(PORT, "0.0.0.0", () => {
       console.log(
         `Backend running on port ${PORT}`
@@ -286,6 +383,10 @@ async function startServer() {
 
       console.log(
         "LiveKit meeting routes registered"
+      );
+
+      console.log(
+        "Morgan HTTP request logger enabled"
       );
     });
   } catch (error) {
