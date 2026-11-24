@@ -1,5 +1,4 @@
 
-
 import dns from "node:dns/promises";
 
 import "dotenv/config";
@@ -95,14 +94,9 @@ if (process.env.NODE_ENV === "production") {
 // MORGAN HTTP REQUEST LOGGER
 // ==========================================
 
-// Development: Short and readable request logs
-// Production: Detailed request logs
+// Same short logging format in development and production
 
-if (process.env.NODE_ENV === "production") {
-  app.use(morgan("combined"));
-} else {
-  app.use(morgan("dev"));
-}
+app.use(morgan("dev"));
 
 // ==========================================
 // SECURITY MIDDLEWARE
