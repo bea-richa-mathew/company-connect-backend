@@ -21,6 +21,7 @@
     "livekit-client": "^2.23.0",
     "livekit-server-sdk": "^2.19.2",
     "mongoose": "^8.9.5",
+    "morgan": "^1.12.1",
     "multer": "^2.4.0"
   },
   "devDependencies": {
